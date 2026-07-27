@@ -27,6 +27,7 @@ import {
   Eye,
   Utensils,
   Users,
+  ChevronRight,
   Check,
   Smartphone,
 } from "lucide-react";
@@ -829,6 +830,108 @@ function RequestCenterSection({ requests, history, onRespond }) {
   );
 }
 
+function AddChildCard({ onAddChild }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const canSubmit = name && email && password.length >= 8;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onAddChild({ name, email, password });
+      setDone(true);
+      setName("");
+      setEmail("");
+      setPassword("");
+    } catch (err) {
+      setError(err.message || "Не получилось добавить ребёнка");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <Card>
+        <button onClick={() => setOpen(true)} className="w-full flex items-center justify-between text-left">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: palette.tealSoft, color: palette.tealText }}>
+              <Users size={17} />
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: palette.ink }}>
+                Добавить ребёнка
+              </p>
+              <p className="text-xs" style={{ color: palette.inkSoft }}>
+                Создать отдельный вход для ребёнка в этой семье
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={18} style={{ color: palette.inkSoft }} />
+        </button>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <SectionHeading title="Добавить ребёнка" icon={Users} />
+      {done && (
+        <div className="mb-3 rounded-2xl p-3 flex items-center gap-2" style={{ backgroundColor: palette.tealSoft, color: palette.tealText }}>
+          <CheckCircle2 size={18} />
+          <p className="text-sm font-bold">Аккаунт создан — можно входить под этим email</p>
+        </div>
+      )}
+      {error && (
+        <div className="mb-3 rounded-2xl p-3 text-sm font-semibold" style={{ backgroundColor: palette.roseSoft, color: palette.roseText }}>
+          {error}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Имя ребёнка"
+          className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+          style={{ borderColor: palette.border, color: palette.ink }}
+        />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email для входа"
+          className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+          style={{ borderColor: palette.border, color: palette.ink }}
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Пароль (минимум 8 символов)"
+          className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+          style={{ borderColor: palette.border, color: palette.ink }}
+        />
+        <div className="flex gap-2">
+          <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="flex-1">
+            {busy ? "Добавляем…" : "Добавить"}
+          </PrimaryButton>
+          <SecondaryButton onClick={() => setOpen(false)}>Свернуть</SecondaryButton>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
 function ParentDashboard({ state, actions }) {
   return (
     <div className="space-y-8">
@@ -849,6 +952,7 @@ function ParentDashboard({ state, actions }) {
         onToggleBlock={actions.toggleScheduleBlock}
       />
       <RequestCenterSection requests={state.requests} history={state.history} onRespond={actions.respondToRequest} />
+      <AddChildCard onAddChild={actions.addChild} />
     </div>
   );
 }
@@ -1184,16 +1288,11 @@ function Header({ user, onLogout }) {
    ЭКРАН ВХОДА
    ============================================================ */
 
-function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin, onGoToRegister }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-
-  const fillDemo = (demoEmail) => {
-    setEmail(demoEmail);
-    setPassword("demo1234");
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1256,20 +1355,120 @@ function LoginScreen({ onLogin }) {
           </PrimaryButton>
         </form>
 
-        <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${palette.border}` }}>
-          <p className="text-xs font-bold mb-2 text-center" style={{ color: palette.inkSoft }}>
-            Демо-доступ (для теста)
+        <div className="mt-5 pt-4 text-center" style={{ borderTop: `1px solid ${palette.border}` }}>
+          <p className="text-sm" style={{ color: palette.inkSoft }}>
+            Ещё нет аккаунта?{" "}
+            <button onClick={onGoToRegister} className="font-bold underline" style={{ color: palette.tealText }}>
+              Создать семью
+            </button>
           </p>
-          <div className="flex gap-2">
-            <SecondaryButton onClick={() => fillDemo("parent@demo.family")} className="flex-1">
-              Родитель
-            </SecondaryButton>
-            <SecondaryButton onClick={() => fillDemo("sonya@demo.family")} className="flex-1">
-              Ребёнок
-            </SecondaryButton>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function RegisterScreen({ onRegister, onGoToLogin }) {
+  const [familyName, setFamilyName] = useState("");
+  const [parentName, setParentName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const canSubmit = parentName && email && password.length >= 8;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onRegister({ familyName, parentName, email, password });
+    } catch (err) {
+      setError(err.message || "Не получилось создать семью");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ backgroundColor: palette.bg, fontFamily: "'Nunito', ui-sans-serif, system-ui, sans-serif" }}
+    >
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Unbounded:wght@600;700;800;900&display=swap');`}</style>
+      <Card className="w-full max-w-sm">
+        <div className="flex flex-col items-center text-center mb-6">
+          <TrustMark size={48} />
+          <h1 className="mt-3 text-xl font-extrabold" style={{ ...displayFont, color: palette.ink }}>
+            Создать семью
+          </h1>
+          <p className="text-sm mt-1" style={{ color: palette.inkSoft }}>
+            Это создаст ваш родительский аккаунт — ребёнка добавите следующим шагом
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-2xl p-3 text-sm font-semibold" style={{ backgroundColor: palette.roseSoft, color: palette.roseText }}>
+            {error}
           </div>
-          <p className="text-xs mt-2 text-center" style={{ color: palette.inkSoft }}>
-            Пароль подставится сам — просто нажмите «Войти»
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="text"
+            value={familyName}
+            onChange={(e) => setFamilyName(e.target.value)}
+            placeholder="Название семьи (необязательно)"
+            className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+            style={{ borderColor: palette.border, color: palette.ink }}
+          />
+          <input
+            type="text"
+            value={parentName}
+            onChange={(e) => setParentName(e.target.value)}
+            placeholder="Ваше имя"
+            className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+            style={{ borderColor: palette.border, color: palette.ink }}
+            autoComplete="name"
+          />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+            style={{ borderColor: palette.border, color: palette.ink }}
+            autoComplete="username"
+          />
+          <div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Пароль (минимум 8 символов)"
+              className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+              style={{ borderColor: palette.border, color: palette.ink }}
+              autoComplete="new-password"
+            />
+            {password && password.length < 8 && (
+              <p className="text-xs mt-1 px-1" style={{ color: palette.roseText }}>
+                Ещё {8 - password.length} симв. до минимума
+              </p>
+            )}
+          </div>
+          <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="w-full">
+            {busy ? "Создаём…" : "Создать семью"}
+          </PrimaryButton>
+        </form>
+
+        <div className="mt-5 pt-4 text-center" style={{ borderTop: `1px solid ${palette.border}` }}>
+          <p className="text-sm" style={{ color: palette.inkSoft }}>
+            Уже есть аккаунт?{" "}
+            <button onClick={onGoToLogin} className="font-bold underline" style={{ color: palette.tealText }}>
+              Войти
+            </button>
           </p>
         </div>
       </Card>
@@ -1282,6 +1481,7 @@ function LoginScreen({ onLogin }) {
    ============================================================ */
 
 export default function App() {
+  const [authMode, setAuthMode] = useState("login"); // "login" | "register"
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -1341,7 +1541,26 @@ export default function App() {
     setLoading(false);
   };
 
+  const handleRegister = async ({ familyName, parentName, email, password }) => {
+    // Тоже без try/catch — RegisterScreen сам ловит ошибку.
+    const data = await apiFetch("/api/auth/register", {
+      method: "POST",
+      body: { familyName, parentName, email, password },
+    });
+    setToken(data.token);
+    setUser(data.user);
+    setLoading(true);
+    await loadAll(data.token, data.user.role);
+    setLoading(false);
+  };
+
+  const handleAddChild = async ({ name, email, password }) => {
+    // Без try/catch — AddChildCard сам ловит ошибку и показывает её в форме.
+    await apiFetch("/api/auth/register-child", { method: "POST", token, body: { name, email, password } });
+  };
+
   const handleLogout = () => {
+    setAuthMode("login");
     setToken(null);
     setUser(null);
     setOverview(null);
@@ -1417,7 +1636,11 @@ export default function App() {
   const fontImport = `@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Unbounded:wght@600;700;800;900&display=swap');`;
 
   if (!token || !user) {
-    return <LoginScreen onLogin={handleLogin} />;
+    return authMode === "register" ? (
+      <RegisterScreen onRegister={handleRegister} onGoToLogin={() => setAuthMode("login")} />
+    ) : (
+      <LoginScreen onLogin={handleLogin} onGoToRegister={() => setAuthMode("register")} />
+    );
   }
 
   if (loading || !overview) {
@@ -1448,6 +1671,7 @@ export default function App() {
     submitQuest,
     submitRequest,
     markAlertDiscussed,
+    addChild: handleAddChild,
   };
 
   return (
