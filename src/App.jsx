@@ -931,7 +931,157 @@ function AddChildCard({ onAddChild }) {
     </Card>
   );
 }
+function ParentQuestRow({ quest }) {
+  const statusConfig = {
+    available: { label: "Доступен", color: palette.tealText, soft: palette.tealSoft },
+    pending_review: { label: "На проверке", color: palette.amberText, soft: palette.amberSoft },
+    completed: { label: "Выполнен", color: palette.inkSoft, soft: palette.border },
+  };
+  const cfg = statusConfig[quest.status] || statusConfig.available;
+  return (
+    <div className="flex items-center gap-3 rounded-2xl p-3" style={{ backgroundColor: palette.bg }}>
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "white", color: palette.lavenderText }}>
+        <Award size={17} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold truncate" style={{ color: palette.ink }}>
+          {quest.title}
+        </p>
+        <p className="text-xs" style={{ color: palette.inkSoft }}>
+          +{quest.reward} мин
+        </p>
+      </div>
+      <Badge color={cfg.color} soft={cfg.soft}>{cfg.label}</Badge>
+    </div>
+  );
+}
 
+function AddQuestCard({ onAddQuest }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [rewardMinutes, setRewardMinutes] = useState(15);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const canSubmit = title.trim().length >= 2 && Number(rewardMinutes) > 0;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onAddQuest({ title: title.trim(), description: description.trim(), rewardMinutes: Number(rewardMinutes) });
+      setTitle("");
+      setDescription("");
+      setRewardMinutes(15);
+      setOpen(false);
+    } catch (err) {
+      setError(err.message || "Не получилось создать квест");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <Card>
+        <button onClick={() => setOpen(true)} className="w-full flex items-center justify-between text-left">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: palette.lavenderSoft, color: palette.lavenderText }}>
+              <Award size={17} />
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: palette.ink }}>
+                Добавить квест
+              </p>
+              <p className="text-xs" style={{ color: palette.inkSoft }}>
+                Новое задание с наградой в минутах экрана
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={18} style={{ color: palette.inkSoft }} />
+        </button>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <SectionHeading title="Новый квест" icon={Award} />
+      {error && (
+        <div className="mb-3 rounded-2xl p-3 text-sm font-semibold" style={{ backgroundColor: palette.roseSoft, color: palette.roseText }}>
+          {error}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Название, например «Помыть посуду»"
+          className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+          style={{ borderColor: palette.border, color: palette.ink }}
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Описание — необязательно"
+          rows={2}
+          className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border resize-none"
+          style={{ borderColor: palette.border, color: palette.ink }}
+        />
+        <div>
+          <label className="text-xs font-semibold block mb-1" style={{ color: palette.inkSoft }}>
+            Награда, минут экранного времени
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={300}
+            value={rewardMinutes}
+            onChange={(e) => setRewardMinutes(e.target.value)}
+            className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+            style={{ borderColor: palette.border, color: palette.ink }}
+          />
+        </div>
+        <div className="flex gap-2">
+          <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="flex-1">
+            {busy ? "Создаём…" : "Создать квест"}
+          </PrimaryButton>
+          <SecondaryButton onClick={() => setOpen(false)}>Свернуть</SecondaryButton>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function QuestManagementSection({ quests, onAddQuest }) {
+  return (
+    <section>
+      <SectionHeading title="Квесты" subtitle="Задания, за которые ребёнок получает дополнительное время" icon={Award} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <p className="text-sm font-bold mb-3" style={{ color: palette.ink }}>
+            Текущие квесты
+          </p>
+          <div className="space-y-3">
+            {quests.map((q) => (
+              <ParentQuestRow key={q.id} quest={q} />
+            ))}
+            {quests.length === 0 && (
+              <p className="text-sm text-center py-2" style={{ color: palette.inkSoft }}>
+                Квестов пока нет — добавьте первый
+              </p>
+            )}
+          </div>
+        </Card>
+        <AddQuestCard onAddQuest={onAddQuest} />
+      </div>
+    </section>
+  );
+}
 function ParentDashboard({ state, actions }) {
   return (
     <div className="space-y-8">
@@ -951,6 +1101,7 @@ function ParentDashboard({ state, actions }) {
         schedule={state.schedule}
         onToggleBlock={actions.toggleScheduleBlock}
       />
+      <QuestManagementSection quests={state.quests} onAddQuest={actions.createQuest} />
       <RequestCenterSection requests={state.requests} history={state.history} onRespond={actions.respondToRequest} />
       <AddChildCard onAddChild={actions.addChild} />
     </div>
@@ -1631,7 +1782,10 @@ export default function App() {
     await apiFetch("/api/requests", { method: "POST", token, body: { type, amount, label, reason } });
     await refresh();
   };
-
+const createQuest = async ({ title, description, rewardMinutes }) => {
+    await apiFetch("/api/quests", { method: "POST", token, body: { title, description, rewardMinutes } });
+    await refresh();
+  };
   const pageStyle = { backgroundColor: palette.bg, fontFamily: "'Nunito', ui-sans-serif, system-ui, sans-serif" };
   const fontImport = `@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Unbounded:wght@600;700;800;900&display=swap');`;
 
@@ -1670,6 +1824,7 @@ export default function App() {
     respondToRequest,
     submitQuest,
     submitRequest,
+    createQuest,
     markAlertDiscussed,
     addChild: handleAddChild,
   };
