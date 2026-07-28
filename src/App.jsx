@@ -1939,6 +1939,16 @@ const createQuest = async ({ title, description, rewardMinutes }) => {
 
   const role = user.role;
 
+  const state = {
+    ...overview,
+    schedule,
+    alerts,
+    quests,
+    requests,
+    history,
+    location,
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ ...pageStyle }}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10" aria-hidden="true">
