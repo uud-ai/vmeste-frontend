@@ -653,7 +653,110 @@ function AlertsSection({ alerts, onMarkDiscussed }) {
   );
 }
 
-function TimeManagementSection({ limitMinutes, setLimitMinutes, schedule, onToggleBlock }) {
+function AddScheduleBlockForm({ onAddBlock }) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [blockType, setBlockType] = useState("other");
+  const [startTime, setStartTime] = useState("16:00");
+  const [endTime, setEndTime] = useState("17:00");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const canSubmit = label.trim().length >= 2 && startTime && endTime;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onAddBlock({ label: label.trim(), blockType, startTime, endTime });
+      setLabel("");
+      setBlockType("other");
+      setStartTime("16:00");
+      setEndTime("17:00");
+      setOpen(false);
+    } catch (err) {
+      setError(err.message || "Не получилось добавить блок");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold border-2 border-dashed mt-1"
+        style={{ borderColor: palette.border, color: palette.inkSoft }}
+      >
+        <Clock size={16} /> Добавить блок расписания
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 pt-3 mt-1 border-t" style={{ borderColor: palette.border }}>
+      {error && (
+        <div className="rounded-2xl p-3 text-sm font-semibold" style={{ backgroundColor: palette.roseSoft, color: palette.roseText }}>
+          {error}
+        </div>
+      )}
+      <input
+        type="text"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="Название, например «Кружок английского»"
+        className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+        style={{ borderColor: palette.border, color: palette.ink }}
+      />
+      <select
+        value={blockType}
+        onChange={(e) => setBlockType(e.target.value)}
+        className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+        style={{ borderColor: palette.border, color: palette.ink }}
+      >
+        <option value="study">Учёба</option>
+        <option value="sleep">Сон</option>
+        <option value="other">Другое</option>
+      </select>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs font-semibold block mb-1" style={{ color: palette.inkSoft }}>
+            Начало
+          </label>
+          <input
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+            style={{ borderColor: palette.border, color: palette.ink }}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold block mb-1" style={{ color: palette.inkSoft }}>
+            Конец
+          </label>
+          <input
+            type="time"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+            style={{ borderColor: palette.border, color: palette.ink }}
+          />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="flex-1">
+          {busy ? "Добавляем…" : "Добавить"}
+        </PrimaryButton>
+        <SecondaryButton onClick={() => setOpen(false)}>Отмена</SecondaryButton>
+      </div>
+    </form>
+  );
+}
+
+function TimeManagementSection({ limitMinutes, setLimitMinutes, schedule, onToggleBlock, onAddBlock }) {
   const pct = ((limitMinutes - 30) / (360 - 30)) * 100;
   return (
     <section>
@@ -709,8 +812,8 @@ function TimeManagementSection({ limitMinutes, setLimitMinutes, schedule, onTogg
               );
             })}
           </div>
+          <AddScheduleBlockForm onAddBlock={onAddBlock} />
         </Card>
-      </div>
     </section>
   );
 }
@@ -1095,11 +1198,12 @@ function ParentDashboard({ state, actions }) {
         location={state.location}
       />
       <AlertsSection alerts={state.alerts} onMarkDiscussed={actions.markAlertDiscussed} />
-      <TimeManagementSection
+      <<TimeManagementSection
         limitMinutes={state.limitMinutes}
         setLimitMinutes={actions.setLimitMinutes}
         schedule={state.schedule}
         onToggleBlock={actions.toggleScheduleBlock}
+        onAddBlock={actions.createScheduleBlock}
       />
       <QuestManagementSection quests={state.quests} onAddQuest={actions.createQuest} />
       <RequestCenterSection requests={state.requests} history={state.history} onRespond={actions.respondToRequest} />
@@ -1748,6 +1852,10 @@ export default function App() {
     }
   };
 
+    const createScheduleBlock = async ({ label, blockType, startTime, endTime }) => {
+    await apiFetch("/api/settings/schedule", { method: "POST", token, body: { label, blockType, startTime, endTime } });
+    await refresh();
+  };
   const markAlertDiscussed = async (id) => {
     setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, discussed: true } : a)));
     try {
@@ -1816,11 +1924,10 @@ const createQuest = async ({ title, description, rewardMinutes }) => {
     );
   }
 
-  const role = user.role;
-  const state = { ...overview, schedule, alerts, quests, requests, history, location };
   const actions = {
     setLimitMinutes: changeLimitMinutes,
     toggleScheduleBlock,
+    createScheduleBlock,
     respondToRequest,
     submitQuest,
     submitRequest,
