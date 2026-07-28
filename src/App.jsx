@@ -814,6 +814,7 @@ function TimeManagementSection({ limitMinutes, setLimitMinutes, schedule, onTogg
           </div>
           <AddScheduleBlockForm onAddBlock={onAddBlock} />
         </Card>
+      </div>
     </section>
   );
 }
