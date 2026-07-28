@@ -1199,7 +1199,7 @@ function ParentDashboard({ state, actions }) {
         location={state.location}
       />
       <AlertsSection alerts={state.alerts} onMarkDiscussed={actions.markAlertDiscussed} />
-      <<TimeManagementSection
+      <TimeManagementSection
         limitMinutes={state.limitMinutes}
         setLimitMinutes={actions.setLimitMinutes}
         schedule={state.schedule}
