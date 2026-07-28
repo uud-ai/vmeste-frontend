@@ -666,7 +666,11 @@ function AddScheduleBlockForm({ onAddBlock }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSubmit || busy) return;
+    if (!canSubmit) {
+      setError("Введите название (минимум 2 символа) и укажите время начала и конца");
+      return;
+    }
+    if (busy) return;
     setBusy(true);
     setError("");
     try {
@@ -747,7 +751,7 @@ function AddScheduleBlockForm({ onAddBlock }) {
         </div>
       </div>
       <div className="flex gap-2">
-        <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="flex-1">
+        <PrimaryButton onClick={handleSubmit} disabled={busy} className="flex-1">
           {busy ? "Добавляем…" : "Добавить"}
         </PrimaryButton>
         <SecondaryButton onClick={() => setOpen(false)}>Отмена</SecondaryButton>
@@ -1070,9 +1074,13 @@ function AddQuestCard({ onAddQuest }) {
 
   const canSubmit = title.trim().length >= 2 && Number(rewardMinutes) > 0;
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSubmit || busy) return;
+    if (!canSubmit) {
+      setError("Введите название (минимум 2 символа) и награду больше 0 минут");
+      return;
+    }
+    if (busy) return;
     setBusy(true);
     setError("");
     try {
@@ -1151,7 +1159,7 @@ function AddQuestCard({ onAddQuest }) {
           />
         </div>
         <div className="flex gap-2">
-          <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="flex-1">
+          <PrimaryButton onClick={handleSubmit} disabled={busy} className="flex-1">
             {busy ? "Создаём…" : "Создать квест"}
           </PrimaryButton>
           <SecondaryButton onClick={() => setOpen(false)}>Свернуть</SecondaryButton>
