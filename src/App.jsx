@@ -542,11 +542,15 @@ function StatusMapCard({ status, location }) {
   );
 }
 
-function OverviewSection({ usedMinutes, limitMinutes, bonusMinutes, status, topApps, categoryBreakdown, location }) {
+function OverviewSection({ usedMinutes, limitMinutes, bonusMinutes, status, topApps, categoryBreakdown, location, childNames }) {
   const totalAvailable = limitMinutes + bonusMinutes;
   return (
     <section>
-      <SectionHeading title="Обзор дня" subtitle="Экранное время ребёнка сегодня" icon={Clock} />
+      <SectionHeading
+        title="Обзор дня"
+        subtitle={childNames ? `Экранное время сегодня — ${childNames}` : "Экранное время ребёнка сегодня"}
+        icon={Clock}
+      />
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="md:col-span-3">
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -1205,6 +1209,7 @@ function ParentDashboard({ state, actions }) {
         topApps={state.topApps}
         categoryBreakdown={state.categoryBreakdown}
         location={state.location}
+        childNames={state.childNames}
       />
       <AlertsSection alerts={state.alerts} onMarkDiscussed={actions.markAlertDiscussed} />
       <TimeManagementSection
@@ -1516,7 +1521,7 @@ function ChildDashboard({ state, actions }) {
    ШАПКА
    ============================================================ */
 
-function Header({ user, onLogout }) {
+function Header({ user, onLogout, childNames }) {
   const isParent = user.role === "parent";
   return (
     <header className="sticky top-0 z-10" style={{ backgroundColor: "rgba(246,247,241,0.9)", borderBottom: `1px solid ${palette.border}` }}>
@@ -1534,6 +1539,15 @@ function Header({ user, onLogout }) {
         </div>
 
         <div className="flex items-center gap-3">
+          {isParent && childNames && (
+            <div
+              className="hidden sm:flex items-center gap-2 rounded-full px-3 py-1.5"
+              style={{ backgroundColor: palette.coralSoft, color: palette.coralText }}
+            >
+              <Sparkles size={15} />
+              <span className="text-sm font-bold">{childNames}</span>
+            </div>
+          )}
           <div
             className="flex items-center gap-2 rounded-full px-3 py-1.5"
             style={{ backgroundColor: isParent ? palette.tealSoft : palette.coralSoft, color: isParent ? palette.tealText : palette.coralText }}
@@ -1547,7 +1561,6 @@ function Header({ user, onLogout }) {
     </header>
   );
 }
-
 /* ============================================================
    ЭКРАН ВХОДА
    ============================================================ */
@@ -1755,6 +1768,7 @@ export default function App() {
   const [overview, setOverview] = useState(null);
   const [schedule, setSchedule] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [familyMembers, setFamilyMembers] = useState([]);
   const [quests, setQuests] = useState([]);
   const [requests, setRequests] = useState([]);
   const [history, setHistory] = useState([]);
@@ -1776,8 +1790,9 @@ export default function App() {
         apiFetch("/api/location", { token: authToken }),
       ];
       if (role === "parent") calls.push(apiFetch("/api/alerts", { token: authToken }));
+      if (role === "parent") calls.push(apiFetch("/api/family/members", { token: authToken }));
 
-      const [overviewData, settingsData, questsData, requestsData, historyData, locationData, alertsData] =
+      const [overviewData, settingsData, questsData, requestsData, historyData, locationData, alertsData, membersData] =
         await Promise.all(calls);
 
       setOverview(mapOverview(overviewData));
@@ -1787,6 +1802,7 @@ export default function App() {
       setHistory(mapHistory(historyData.history));
       setLocation(locationData.location);
       if (role === "parent") setAlerts(mapAlerts(alertsData.alerts));
+      if (role === "parent") setFamilyMembers(membersData.members);
     } catch (err) {
       setLoadError(err.message || "Не удалось загрузить данные с сервера");
     } finally {
@@ -1945,7 +1961,12 @@ const createQuest = async ({ title, description, rewardMinutes }) => {
     addChild: handleAddChild,
   };
 
-  const role = user.role;
+ const role = user.role;
+
+  const childNames = familyMembers
+    .filter((m) => m.role === "child")
+    .map((m) => m.name)
+    .join(", ");
 
   const state = {
     ...overview,
@@ -1955,6 +1976,7 @@ const createQuest = async ({ title, description, rewardMinutes }) => {
     requests,
     history,
     location,
+    childNames,
   };
 
   return (
@@ -2030,7 +2052,7 @@ const createQuest = async ({ title, description, rewardMinutes }) => {
         .range-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px ${palette.tealSoft}, 0 1px 4px rgba(0,0,0,0.25); }
       `}</style>
 
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} childNames={state.childNames} />
       <main className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {loadError && (
           <div
