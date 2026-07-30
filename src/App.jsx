@@ -1565,7 +1565,7 @@ function Header({ user, onLogout, childNames }) {
    ЭКРАН ВХОДА
    ============================================================ */
 
-function LoginScreen({ onLogin, onGoToRegister }) {
+function LoginScreen({ onLogin, onGoToRegister, onGoToForgot }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1735,10 +1735,16 @@ function RegisterScreen({ onRegister, onGoToLogin }) {
               </p>
             )}
           </div>
-          <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="w-full">
-            {busy ? "Создаём…" : "Создать семью"}
+          <PrimaryButton onClick={handleSubmit} disabled={busy || !email || !password} className="w-full">
+            {busy ? "Входим…" : "Войти"}
           </PrimaryButton>
         </form>
+
+        <div className="mt-3 text-center">
+          <button onClick={onGoToForgot} className="text-xs font-semibold underline" style={{ color: palette.inkSoft }}>
+            Забыли пароль?
+          </button>
+        </div>
 
         <div className="mt-5 pt-4 text-center" style={{ borderTop: `1px solid ${palette.border}` }}>
           <p className="text-sm" style={{ color: palette.inkSoft }}>
@@ -1753,12 +1759,179 @@ function RegisterScreen({ onRegister, onGoToLogin }) {
   );
 }
 
+function ForgotPasswordScreen({ onSubmit, onGoToLogin }) {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onSubmit(email);
+      setSent(true);
+    } catch (err) {
+      setError(err.message || "Не получилось отправить письмо");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ backgroundColor: palette.bg, fontFamily: "'Nunito', ui-sans-serif, system-ui, sans-serif" }}
+    >
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Unbounded:wght@600;700;800;900&display=swap');`}</style>
+      <Card className="w-full max-w-sm">
+        <div className="flex flex-col items-center text-center mb-6">
+          <TrustMark size={48} />
+          <h1 className="mt-3 text-xl font-extrabold" style={{ ...displayFont, color: palette.ink }}>
+            Восстановление пароля
+          </h1>
+          <p className="text-sm mt-1" style={{ color: palette.inkSoft }}>
+            Пришлём ссылку на почту, чтобы задать новый пароль
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-2xl p-3 text-sm font-semibold" style={{ backgroundColor: palette.roseSoft, color: palette.roseText }}>
+            {error}
+          </div>
+        )}
+
+        {sent ? (
+          <div
+            className="rounded-2xl p-4 text-sm font-semibold text-center"
+            style={{ backgroundColor: palette.tealSoft, color: palette.tealText }}
+          >
+            Если такой email зарегистрирован — на него уже отправлена ссылка. Проверьте почту (и папку «Спам»).
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+              style={{ borderColor: palette.border, color: palette.ink }}
+              autoComplete="username"
+            />
+            <PrimaryButton onClick={handleSubmit} disabled={busy || !email} className="w-full">
+              {busy ? "Отправляем…" : "Отправить ссылку"}
+            </PrimaryButton>
+          </form>
+        )}
+
+        <div className="mt-5 pt-4 text-center" style={{ borderTop: `1px solid ${palette.border}` }}>
+          <button onClick={onGoToLogin} className="text-sm font-bold underline" style={{ color: palette.tealText }}>
+            Вернуться ко входу
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function ResetPasswordScreen({ token, onSubmit, onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const canSubmit = password.length >= 8 && password === confirmPassword;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onSubmit(token, password);
+      setDone(true);
+    } catch (err) {
+      setError(err.message || "Не получилось сохранить новый пароль");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ backgroundColor: palette.bg, fontFamily: "'Nunito', ui-sans-serif, system-ui, sans-serif" }}
+    >
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Unbounded:wght@600;700;800;900&display=swap');`}</style>
+      <Card className="w-full max-w-sm">
+        <div className="flex flex-col items-center text-center mb-6">
+          <TrustMark size={48} />
+          <h1 className="mt-3 text-xl font-extrabold" style={{ ...displayFont, color: palette.ink }}>
+            Новый пароль
+          </h1>
+          <p className="text-sm mt-1" style={{ color: palette.inkSoft }}>
+            Придумайте новый пароль для входа
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-2xl p-3 text-sm font-semibold" style={{ backgroundColor: palette.roseSoft, color: palette.roseText }}>
+            {error}
+          </div>
+        )}
+
+        {done ? (
+          <div className="space-y-4">
+            <div
+              className="rounded-2xl p-4 text-sm font-semibold text-center"
+              style={{ backgroundColor: palette.tealSoft, color: palette.tealText }}
+            >
+              Пароль обновлён! Теперь можно войти с новым паролем.
+            </div>
+            <PrimaryButton onClick={onDone} className="w-full">
+              Ко входу
+            </PrimaryButton>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Новый пароль (минимум 8 символов)"
+              className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+              style={{ borderColor: palette.border, color: palette.ink }}
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Повторите пароль"
+              className="field-focus w-full rounded-2xl px-3 py-2.5 text-sm border"
+              style={{ borderColor: palette.border, color: palette.ink }}
+              autoComplete="new-password"
+            />
+            <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="w-full">
+              {busy ? "Сохраняем…" : "Сохранить новый пароль"}
+            </PrimaryButton>
+          </form>
+        )}
+      </Card>
+    </div>
+  );
+}
 /* ============================================================
    КОРНЕВОЙ КОМПОНЕНТ
    ============================================================ */
 
 export default function App() {
-  const [authMode, setAuthMode] = useState("login"); // "login" | "register"
+  const [authMode, setAuthMode] = useState("login"); // "login" | "register" | "forgot"
+  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("resetToken"));
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -1837,6 +2010,22 @@ export default function App() {
   const handleAddChild = async ({ name, email, password }) => {
     // Без try/catch — AddChildCard сам ловит ошибку и показывает её в форме.
     await apiFetch("/api/auth/register-child", { method: "POST", token, body: { name, email, password } });
+  };
+
+  const handleForgotPassword = async (email) => {
+    // Без try/catch — ForgotPasswordScreen сам ловит ошибку.
+    await apiFetch("/api/auth/forgot-password", { method: "POST", body: { email } });
+  };
+
+  const handleResetPassword = async (resetTok, password) => {
+    // Без try/catch — ResetPasswordScreen сам ловит ошибку.
+    await apiFetch("/api/auth/reset-password", { method: "POST", body: { token: resetTok, password } });
+  };
+
+  const handleResetDone = () => {
+    setResetToken(null);
+    window.history.replaceState({}, "", window.location.pathname);
+    setAuthMode("login");
   };
 
   const handleLogout = () => {
@@ -1922,11 +2111,23 @@ const createQuest = async ({ title, description, rewardMinutes }) => {
   const pageStyle = { backgroundColor: palette.bg, fontFamily: "'Nunito', ui-sans-serif, system-ui, sans-serif" };
   const fontImport = `@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Unbounded:wght@600;700;800;900&display=swap');`;
 
+  if (resetToken) {
+    return <ResetPasswordScreen token={resetToken} onSubmit={handleResetPassword} onDone={handleResetDone} />;
+  }
+
   if (!token || !user) {
-    return authMode === "register" ? (
-      <RegisterScreen onRegister={handleRegister} onGoToLogin={() => setAuthMode("login")} />
-    ) : (
-      <LoginScreen onLogin={handleLogin} onGoToRegister={() => setAuthMode("register")} />
+    if (authMode === "register") {
+      return <RegisterScreen onRegister={handleRegister} onGoToLogin={() => setAuthMode("login")} />;
+    }
+    if (authMode === "forgot") {
+      return <ForgotPasswordScreen onSubmit={handleForgotPassword} onGoToLogin={() => setAuthMode("login")} />;
+    }
+    return (
+      <LoginScreen
+        onLogin={handleLogin}
+        onGoToRegister={() => setAuthMode("register")}
+        onGoToForgot={() => setAuthMode("forgot")}
+      />
     );
   }
 
