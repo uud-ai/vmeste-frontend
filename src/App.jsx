@@ -1632,6 +1632,12 @@ function LoginScreen({ onLogin, onGoToRegister, onGoToForgot }) {
           </PrimaryButton>
         </form>
 
+        <div className="mt-3 text-center">
+          <button onClick={onGoToForgot} className="text-xs font-semibold underline" style={{ color: palette.inkSoft }}>
+            Забыли пароль?
+          </button>
+        </div>
+
         <div className="mt-5 pt-4 text-center" style={{ borderTop: `1px solid ${palette.border}` }}>
           <p className="text-sm" style={{ color: palette.inkSoft }}>
             Ещё нет аккаунта?{" "}
@@ -1735,16 +1741,10 @@ function RegisterScreen({ onRegister, onGoToLogin }) {
               </p>
             )}
           </div>
-          <PrimaryButton onClick={handleSubmit} disabled={busy || !email || !password} className="w-full">
-            {busy ? "Входим…" : "Войти"}
+          <PrimaryButton onClick={handleSubmit} disabled={busy || !canSubmit} className="w-full">
+            {busy ? "Создаём…" : "Создать семью"}
           </PrimaryButton>
         </form>
-
-        <div className="mt-3 text-center">
-          <button onClick={onGoToForgot} className="text-xs font-semibold underline" style={{ color: palette.inkSoft }}>
-            Забыли пароль?
-          </button>
-        </div>
 
         <div className="mt-5 pt-4 text-center" style={{ borderTop: `1px solid ${palette.border}` }}>
           <p className="text-sm" style={{ color: palette.inkSoft }}>
